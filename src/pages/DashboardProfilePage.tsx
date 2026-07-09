@@ -32,27 +32,69 @@ export function DashboardProfilePage({ onNavigate }: Props) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Carrega categorias
   useEffect(() => {
-    supabase.from('categories').select('*').order('name').then(({ data }) => setCategories(data || []));
+    const fetchCategories = async () => {
+      const { data } = await supabase.from('categories').select('*').order('name');
+      setCategories(data || []);
+    };
+    fetchCategories();
   }, []);
 
+  // ✅ CORREÇÃO: Carrega perfil com tratamento completo
   useEffect(() => {
-    if (profile) {
-      setFullName(profile.full_name || '');
-      setTitle(profile.title || '');
-      setBio(profile.bio || '');
-      setCity(profile.city || '');
-      setState(profile.state || '');
-      setWhatsapp(profile.whatsapp || '');
-      setAvatarUrl(profile.avatar_url || '');
-      setCoverUrl(profile.cover_url || '');
-      setYearsExp(profile.years_experience || 0);
-      setSpecialties(profile.specialties || []);
-      setLoading(false);
-    } else if (user) {
-      refreshProfile().then(() => setLoading(false));
-    }
-  }, [profile, user, refreshProfile]);
+    const loadProfile = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Se já tem perfil no contexto, usa ele
+      if (profile) {
+        fillForm(profile);
+        setLoading(false);
+        return;
+      }
+
+      // Se não tem, busca diretamente + atualiza o contexto
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.warn('Perfil não encontrado no banco, vamos criar vazio:', error.message);
+          // Não interrompe, vai permitir preencher e salvar
+        }
+
+        if (data) {
+          fillForm(data);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar perfil:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user, profile]);
+
+  // Função auxiliar para preencher os campos
+  const fillForm = (p: any) => {
+    setFullName(p.full_name || '');
+    setTitle(p.title || '');
+    setBio(p.bio || '');
+    setCity(p.city || '');
+    setState(p.state || '');
+    setWhatsapp(p.whatsapp || '');
+    setAvatarUrl(p.avatar_url || '');
+    setCoverUrl(p.cover_url || '');
+    setYearsExp(p.years_experience || 0);
+    setSpecialties(p.specialties || []);
+  };
 
   function addSpecialty(s: string) {
     const v = s.trim();
@@ -66,6 +108,7 @@ export function DashboardProfilePage({ onNavigate }: Props) {
     setSpecialties((prev) => prev.filter((x) => x !== s));
   }
 
+  // ✅ CORREÇÃO: Função de salvar ajustada para funcionar com RLS
   async function save() {
     if (!user) return;
     if (!fullName.trim()) {
@@ -74,29 +117,33 @@ export function DashboardProfilePage({ onNavigate }: Props) {
     }
     setSaving(true);
     
-    // O UPSERT garante que criará o registro se ele não existir
+    const dados = {
+      id: user.id,
+      full_name: fullName.trim(),
+      title: title.trim(),
+      bio: bio.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      whatsapp: whatsapp.replace(/\D/g, ''),
+      avatar_url: avatarUrl.trim() || null,
+      cover_url: coverUrl.trim() || null,
+      years_experience: yearsExp,
+      specialties,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Usamos upsert com confirmação de linha
     const { error } = await supabase
       .from('profiles')
-      .upsert({
-        id: user.id,
-        full_name: fullName.trim(),
-        title: title.trim(),
-        bio: bio.trim(),
-        city: city.trim(),
-        state: state.trim(),
-        whatsapp: whatsapp.replace(/\D/g, ''),
-        avatar_url: avatarUrl.trim() || null,
-        cover_url: coverUrl.trim() || null,
-        years_experience: yearsExp,
-        specialties,
-        updated_at: new Date().toISOString(),
-      });
+      .upsert(dados, { onConflict: 'id' });
 
     setSaving(false);
     if (error) {
+      console.error('Erro ao salvar perfil:', error);
       toast('Erro ao salvar: ' + error.message, 'error');
       return;
     }
+
     await refreshProfile();
     toast('Perfil atualizado com sucesso!', 'success');
   }
