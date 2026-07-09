@@ -22,16 +22,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function loadProfile(userId: string) {
+    console.log('🔍 Carregando perfil para:', userId); // Log para debug
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .maybeSingle();
+
     if (error) {
-      console.error('Failed to load profile:', error.message);
+      console.error('❌ Falha ao carregar perfil:', error.message);
       setProfile(null);
       return;
     }
+
+    console.log('✅ Perfil carregado:', data); // Log para debug
     setProfile(data as Profile | null);
   }
 
@@ -41,9 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        loadProfile(data.session.user.id).finally(() => mounted && setLoading(false));
+      const currentUser = data.session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        loadProfile(currentUser.id).finally(() => mounted && setLoading(false));
       } else {
         setLoading(false);
       }
@@ -51,10 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       (async () => {
+        if (!mounted) return;
         setSession(newSession);
-        setUser(newSession?.user ?? null);
-        if (newSession?.user) {
-          await loadProfile(newSession.user.id);
+        const currentUser = newSession?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await loadProfile(currentUser.id);
         } else {
           setProfile(null);
         }
@@ -79,22 +86,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: { data: { full_name: fullName } },
     });
+
     if (error) return { error: translateError(error.message) };
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        full_name: fullName,
-        title: '',
-        bio: '',
-        city: '',
-        state: '',
-        whatsapp: '',
-        specialties: [],
-      });
-      if (profileError) {
-        return { error: 'Conta criada, mas falha ao inicializar perfil. Tente fazer login.' };
-      }
+    if (!data.user) return { error: 'Não foi possível criar a conta.' };
+
+    console.log('📝 Criando perfil inicial para:', data.user.id);
+
+    // ✅ CORREÇÃO: Envia TODOS os campos obrigatórios ou usa os valores padrão
+    const { error: profileError } = await supabase.from('profiles').insert({
+      id: data.user.id,
+      full_name: fullName,
+      title: '',
+      bio: '',
+      city: '',
+      state: '',
+      whatsapp: '',
+      avatar_url: null,
+      cover_url: null,
+      specialties: [],
+      years_experience: 0,
+      verified: false,
+      rating: 5.0,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    if (profileError) {
+      console.error('❌ Erro ao criar perfil:', profileError.message);
+      return { error: `Conta criada, mas falha ao configurar perfil: ${profileError.message}` };
     }
+
+    console.log('✅ Perfil criado com sucesso!');
     return { error: null };
   }
 
@@ -105,8 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  // ✅ CORREÇÃO: Garante que usa o usuário atual da sessão
   async function refreshProfile() {
-    if (user) await loadProfile(user.id);
+    if (!session?.user) return;
+    await loadProfile(session.user.id);
   }
 
   return (
