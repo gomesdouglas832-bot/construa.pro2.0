@@ -6,6 +6,8 @@ export type Route =
   | { name: 'professional'; id: string }
   | { name: 'signin' }
   | { name: 'signup' }
+  | { name: 'forgot-password' }
+  | { name: 'reset-password' }
   | { name: 'dashboard' }
   | { name: 'dashboard-profile' }
   | { name: 'dashboard-portfolio' }
@@ -18,18 +20,27 @@ function parseHash(): Route {
   const segments = path.split('/').filter(Boolean);
 
   if (segments.length === 0) return { name: 'home' };
+  
+  // Rotas públicas e de autenticação
   if (segments[0] === 'explore') {
     return { name: 'browse', category: params.get('cat') || undefined, q: params.get('q') || undefined };
   }
   if (segments[0] === 'p' && segments[1]) return { name: 'professional', id: segments[1] };
   if (segments[0] === 'signin') return { name: 'signin' };
   if (segments[0] === 'signup') return { name: 'signup' };
+  
+  // Novas rotas de senha
+  if (segments[0] === 'forgot-password') return { name: 'forgot-password' };
+  if (segments[0] === 'reset-password') return { name: 'reset-password' };
+
+  // Rotas da Dashboard
   if (segments[0] === 'dashboard') {
     if (segments[1] === 'profile') return { name: 'dashboard-profile' };
     if (segments[1] === 'portfolio') return { name: 'dashboard-portfolio' };
     if (segments[1] === 'stories') return { name: 'dashboard-stories' };
     return { name: 'dashboard' };
   }
+  
   return { name: 'home' };
 }
 

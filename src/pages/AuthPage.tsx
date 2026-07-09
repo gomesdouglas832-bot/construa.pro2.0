@@ -153,11 +153,25 @@ export function AuthPage({ mode, onNavigate }: Props) {
                 {error}
               </div>
             )}
+             
+             
 
             <Button type="submit" size="lg" loading={loading} className="w-full" icon={!loading ? <ArrowRight size={16} /> : undefined}>
               {isSignup ? 'Criar conta grátis' : 'Entrar'}
             </Button>
           </form>
+
+          <div className="mt-4 text-center">
+  <button 
+    onClick={(e) => {
+      e.preventDefault();
+      onNavigate('forgot-password');
+    }} 
+    className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
+  >
+    Esqueceu sua senha?
+  </button>
+</div>
 
           <p className="text-sm text-muted text-center mt-6">
             {isSignup ? 'Já tem conta?' : 'Ainda não é cadastrado?'}{' '}

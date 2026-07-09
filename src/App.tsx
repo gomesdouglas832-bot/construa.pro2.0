@@ -14,7 +14,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { DashboardProfilePage } from './pages/DashboardProfilePage';
 import { DashboardPortfolioPage } from './pages/DashboardPortfolioPage';
 import { DashboardStoriesPage } from './pages/DashboardStoriesPage';
-
+import { ForgotPassword } from './components/auth/ForgotPassword';
+import { UpdatePassword } from './components/auth/UpdatePassword';
 function Routes() {
   const { route, navigate } = useRouter();
   const { user, loading } = useAuth();
@@ -52,6 +53,7 @@ function Routes() {
           <PublicFooter onNavigate={navigate} />
         </>
       );
+      
     case 'professional':
       return (
         <>
@@ -71,6 +73,10 @@ function Routes() {
       return <DashboardPortfolioPage onNavigate={navigate} />;
     case 'dashboard-stories':
       return <DashboardStoriesPage onNavigate={navigate} />;
+      case 'forgot-password':
+      return <ForgotPassword onNavigate={navigate} />;
+    case 'reset-password':
+      return <UpdatePassword onNavigate={navigate} />;
     default:
       return (
         <>
