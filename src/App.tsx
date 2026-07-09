@@ -16,6 +16,7 @@ import { DashboardPortfolioPage } from './pages/DashboardPortfolioPage';
 import { DashboardStoriesPage } from './pages/DashboardStoriesPage';
 import { ForgotPassword } from './components/auth/ForgotPassword';
 import { UpdatePassword } from './components/auth/UpdatePassword';
+
 function Routes() {
   const { route, navigate } = useRouter();
   const { user, loading } = useAuth();
@@ -23,10 +24,19 @@ function Routes() {
   // Redirect auth-aware routes
   useEffect(() => {
     if (loading) return;
+
+    // PROTEÇÃO CRÍTICA: Se o usuário estiver no fluxo de reset de senha, 
+    // não redirecionar, independente do estado de autenticação.
+    if (route.name === 'reset-password') return;
+
     const dashRoutes = ['dashboard', 'dashboard-profile', 'dashboard-portfolio', 'dashboard-stories'];
+    
+    // Redirecionar para signin se tentar acessar dashboard sem estar logado
     if (dashRoutes.includes(route.name) && !user) {
       navigate('/signin');
     }
+    
+    // Redirecionar para dashboard se já estiver logado e tentar acessar login/signup
     if ((route.name === 'signin' || route.name === 'signup') && user) {
       navigate('/dashboard');
     }
@@ -53,7 +63,6 @@ function Routes() {
           <PublicFooter onNavigate={navigate} />
         </>
       );
-      
     case 'professional':
       return (
         <>
@@ -65,6 +74,13 @@ function Routes() {
       return <AuthPage mode="signin" onNavigate={navigate} />;
     case 'signup':
       return <AuthPage mode="signup" onNavigate={navigate} />;
+    
+    // Rotas de recuperação de senha
+    case 'forgot-password':
+      return <ForgotPassword onNavigate={navigate} />;
+    case 'reset-password':
+      return <UpdatePassword onNavigate={navigate} />;
+      
     case 'dashboard':
       return <DashboardPage onNavigate={navigate} />;
     case 'dashboard-profile':
@@ -73,10 +89,6 @@ function Routes() {
       return <DashboardPortfolioPage onNavigate={navigate} />;
     case 'dashboard-stories':
       return <DashboardStoriesPage onNavigate={navigate} />;
-      case 'forgot-password':
-      return <ForgotPassword onNavigate={navigate} />;
-    case 'reset-password':
-      return <UpdatePassword onNavigate={navigate} />;
     default:
       return (
         <>

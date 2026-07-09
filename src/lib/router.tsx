@@ -14,8 +14,16 @@ export type Route =
   | { name: 'dashboard-stories' };
 
 function parseHash(): Route {
-  const hash = window.location.hash.replace(/^#/, '') || '/';
-  const [path, queryStr] = hash.split('?');
+  const hash = window.location.hash;
+
+  // Prioridade Máxima: Se a URL contiver os parâmetros do Supabase (token),
+  // forçamos a rota para 'reset-password' antes de qualquer outra interpretação.
+  if (hash.includes('access_token=') || hash.includes('type=recovery')) {
+    return { name: 'reset-password' };
+  }
+
+  const cleanHash = hash.replace(/^#/, '') || '/';
+  const [path, queryStr] = cleanHash.split('?');
   const params = new URLSearchParams(queryStr || '');
   const segments = path.split('/').filter(Boolean);
 
@@ -29,7 +37,7 @@ function parseHash(): Route {
   if (segments[0] === 'signin') return { name: 'signin' };
   if (segments[0] === 'signup') return { name: 'signup' };
   
-  // Novas rotas de senha
+  // Rotas de senha
   if (segments[0] === 'forgot-password') return { name: 'forgot-password' };
   if (segments[0] === 'reset-password') return { name: 'reset-password' };
 
