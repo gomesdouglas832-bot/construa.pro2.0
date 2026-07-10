@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  MapPin, Star, ShieldCheck, MessageCircle, Briefcase, ArrowLeft, Share2, Image as ImageIcon, Clock,
+  MapPin, Star, ShieldCheck, MessageCircle, Briefcase, ArrowLeft, Share2, Image as ImageIcon, Clock, Send, AlertCircle,
 } from 'lucide-react';
 import { supabase, type Profile, type PortfolioItem, type Story } from '../lib/supabase';
 import { Avatar } from '../components/ui/Avatar';
@@ -9,20 +9,40 @@ import { Button } from '../components/ui/Button';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
 import { buildWhatsappUrl, formatRelative, cn } from '../lib/utils';
+import { Input, Textarea } from '../components/ui/Input';
+import { useToast } from '../components/ui/Toast'; // ✅ Importação correta do seu componente
 
 type Props = {
   id: string;
   onNavigate: (path: string) => void;
 };
 
+type Rating = {
+  id: number;
+  reviewer_name: string;
+  reviewer_phone: string;
+  stars: number;
+  comment: string;
+  created_at: string;
+};
+
 export function ProfessionalPage({ id, onNavigate }: Props) {
+  const { toast } = useToast(); // ✅ Agora usa o toast do seu sistema
   const [profile, setProfile] = useState<Profile | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
+  const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeStory, setActiveStory] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<PortfolioItem | null>(null);
+
+  const [reviewerName, setReviewerName] = useState('');
+  const [reviewerPhone, setReviewerPhone] = useState('');
+  const [selectedStars, setSelectedStars] = useState(5);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [hasVoted, setHasVoted] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -32,14 +52,16 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
         .select('*')
         .eq('id', id)
         .maybeSingle();
+
       if (error || !data) {
         setNotFound(true);
         setLoading(false);
         return;
       }
+
       setProfile(data as Profile);
 
-      const [p, s] = await Promise.all([
+      const [p, s, r] = await Promise.all([
         supabase.from('portfolio_items').select('*').eq('profile_id', id).order('created_at', { ascending: false }),
         supabase
           .from('stories')
@@ -49,18 +71,66 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
           .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: false })
           .limit(8),
+        supabase.from('ratings').select('*').eq('profile_id', id).order('created_at', { ascending: false }),
       ]);
+
       setPortfolio((p.data as PortfolioItem[]) || []);
       setStories((s.data as Story[]) || []);
+      setRatings((r.data as Rating[]) || []);
+
+      const savedPhone = localStorage.getItem(`voted_${id}`);
+      if (savedPhone) setHasVoted(true);
+
       setLoading(false);
 
-      // fire-and-forget analytics
       supabase.from('profile_views').insert({ profile_id: id, viewer_source: 'marketplace' }).then();
     })();
   }, [id]);
 
   function trackWhatsapp() {
     supabase.from('whatsapp_clicks').insert({ profile_id: id, origin: 'profile' }).then();
+  }
+
+  async function handleSubmitRating(e: React.FormEvent) {
+    e.preventDefault();
+    const phoneClean = reviewerPhone.replace(/\D/g, '');
+
+    if (!reviewerName.trim()) return toast('Digite seu nome completo', 'error');
+    if (phoneClean.length < 10) return toast('Digite um telefone válido', 'error');
+    if (selectedStars < 1 || selectedStars > 5) return toast('Escolha uma nota de 1 a 5', 'error');
+
+    setSubmitting(true);
+
+    const { error } = await supabase.from('ratings').insert({
+      profile_id: id,
+      reviewer_name: reviewerName.trim(),
+      reviewer_phone: phoneClean,
+      stars: selectedStars,
+      comment: comment.trim(),
+    });
+
+    setSubmitting(false);
+
+    if (error) {
+  if (error.code === '23505') {
+    // Usamos "info" ou "success" no lugar de "warning"
+    toast('Você já enviou uma avaliação para este profissional!', 'info');
+    setHasVoted(true);
+  } else {
+    toast('Erro ao enviar avaliação: ' + error.message, 'error');
+  }
+  return;
+}
+
+    toast('Avaliação enviada com sucesso! ✅', 'success');
+    localStorage.setItem(`voted_${id}`, phoneClean);
+    setHasVoted(true);
+
+    const { data: newRatings } = await supabase.from('ratings').select('*').eq('profile_id', id).order('created_at', { ascending: false });
+    setRatings(newRatings || []);
+
+    const { data: updatedProfile } = await supabase.from('profiles').select('rating').eq('id', id).single();
+    if (updatedProfile) setProfile(prev => prev ? { ...prev, rating: updatedProfile.rating } : null);
   }
 
   if (loading) {
@@ -111,6 +181,7 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
             icon={<Share2 size={14} />}
             onClick={() => {
               navigator.clipboard?.writeText(window.location.href);
+              toast('Link copiado!', 'success');
             }}
           >
             Compartilhar
@@ -143,7 +214,7 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
                     <span className="flex items-center gap-1.5"><MapPin size={14} className="text-amber-400" /> {profile.city}{profile.state ? `, ${profile.state}` : ''}</span>
                   )}
                   <span className="flex items-center gap-1.5 text-amber-400">
-                    <Star size={14} fill="currentColor" /> {Number(profile.rating).toFixed(1)}
+                    <Star size={14} fill="currentColor" /> {Number(profile.rating).toFixed(1)} ({ratings.length} avaliações)
                   </span>
                   {profile.years_experience > 0 && (
                     <span className="flex items-center gap-1.5"><Briefcase size={14} className="text-amber-400" /> {profile.years_experience} anos de experiência</span>
@@ -255,7 +326,115 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
           )}
         </section>
 
-        {/* Final CTA */}
+        {/* Avaliações */}
+        <section className="mb-12">
+          <div className="card-surface p-6">
+            <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+              <Star size={18} className="text-amber-400" /> Avaliações
+            </h2>
+
+            {!hasVoted ? (
+              <form onSubmit={handleSubmitRating} className="mb-8 p-5 border border-ink-700 rounded-xl bg-ink-900/50">
+                <h3 className="text-sm font-semibold text-white mb-4">Deixe sua avaliação</h3>
+
+                <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                  <Input
+                    label="Seu nome completo"
+                    value={reviewerName}
+                    onChange={(e) => setReviewerName(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Seu telefone"
+                    type="tel"
+                    value={reviewerPhone}
+                    onChange={(e) => setReviewerPhone(e.target.value)}
+                    placeholder="(00) 00000-0000"
+                    required
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-xs text-muted mb-2 block">Nota (de 1 a 5 estrelas)</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setSelectedStars(n)}
+                        className={cn(
+                          'p-1 transition-transform hover:scale-110',
+                          n <= selectedStars ? 'text-amber-400' : 'text-ink-600'
+                        )}
+                      >
+                        <Star size={22} fill="currentColor" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Textarea
+                  label="Comentário (opcional)"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
+                  placeholder="Conte como foi o atendimento e o serviço prestado..."
+                />
+
+                <Button
+                  type="submit"
+                  icon={<Send size={15} />}
+                  loading={submitting}
+                  className="mt-4"
+                >
+                  Enviar avaliação
+                </Button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-2 p-3 mb-6 bg-amber-400/10 border border-amber-400/20 rounded-lg">
+                <AlertCircle size={16} className="text-amber-400" />
+                <p className="text-sm text-amber-200">Você já enviou sua avaliação para este profissional. Obrigado!</p>
+              </div>
+            )}
+
+            {ratings.length === 0 ? (
+              <EmptyState
+                icon={<Star size={24} />}
+                title="Nenhuma avaliação ainda"
+                description="Seja o primeiro a avaliar este profissional!"
+              />
+            ) : (
+              <div className="space-y-5">
+                {ratings.map((r) => (
+                  <div key={r.id} className="border-b border-ink-800 pb-4 last:border-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar name={r.reviewer_name} size="sm" />
+                        <span className="text-sm font-medium text-white">{r.reviewer_name}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            size={14}
+                            className={i < r.stars ? 'text-amber-400' : 'text-ink-600'}
+                            fill="currentColor"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {r.comment && (
+                      <p className="text-sm text-muted-lighter pl-9">{r.comment}</p>
+                    )}
+                    <p className="text-[10px] text-muted mt-1 pl-9">{formatRelative(r.created_at)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* CTA Final */}
         {profile.whatsapp && (
           <section className="mb-16">
             <div className="relative overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-br from-ink-900 to-ink-850 p-8 text-center">
@@ -274,7 +453,7 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
         )}
       </div>
 
-      {/* Story viewer */}
+      {/* Visualizador de Stories */}
       {activeStory !== null && stories[activeStory] && (
         <div
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
@@ -299,7 +478,7 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
         </div>
       )}
 
-      {/* Portfolio lightbox */}
+      {/* Visualizador de Imagens do Portfólio */}
       {selectedImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
@@ -307,11 +486,14 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
         >
           <div className="max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
             <img src={selectedImage.image_url} alt={selectedImage.title} className="w-full max-h-[75vh] object-contain rounded-2xl" />
-            <div className="mt-4 text-center">
-              {selectedImage.title && <p className="text-base font-bold text-white">{selectedImage.title}</p>}
-              {selectedImage.category && <p className="text-xs text-amber-400 mt-1">{selectedImage.category}</p>}
-              {selectedImage.description && <p className="text-sm text-muted mt-2 max-w-lg mx-auto">{selectedImage.description}</p>}
-            </div>
+           <div className="mt-4 text-center">
+  {selectedImage.title && <p className="text-base font-bold text-white">{selectedImage.title}</p>}
+  {/* Verifica se o campo existe e não está vazio antes de exibir */}
+  {selectedImage.category && selectedImage.category.trim() !== '' && (
+    <p className="text-xs text-amber-400 mt-1">{selectedImage.category}</p>
+  )}
+  {selectedImage.description && <p className="text-sm text-muted mt-2 max-w-lg mx-auto">{selectedImage.description}</p>}
+</div>
           </div>
         </div>
       )}

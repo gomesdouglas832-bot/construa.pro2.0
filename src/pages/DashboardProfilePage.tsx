@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Save, Plus, X, MapPin, Phone, Briefcase, Star, ShieldCheck, User as UserIcon, Image as ImageIcon, AlertCircle } from 'lucide-react';
-import { supabase, type Category } from '../lib/supabase';
+import { Save, Plus, X, MapPin, Phone, Briefcase, Star, ShieldCheck, User as UserIcon, Image as ImageIcon, AlertCircle, Edit, Loader2 } from 'lucide-react';
+import { supabase, type Category, type Profile } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { DashboardLayout, DashboardHeader } from '../components/DashboardLayout';
 import { Avatar } from '../components/ui/Avatar';
@@ -32,58 +32,52 @@ export function DashboardProfilePage({ onNavigate }: Props) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Carrega categorias
+  // Estados para o upload de imagens
+  const [enviandoAvatar, setEnviandoAvatar] = useState(false);
+  const [enviandoCapa, setEnviandoCapa] = useState(false);
+
+  // Carrega lista de categorias
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data } = await supabase.from('categories').select('*').order('name');
-      setCategories(data || []);
+      const { data, error } = await supabase.from('categories').select('*').order('name', { ascending: true });
+      if (!error) setCategories(data || []);
     };
     fetchCategories();
   }, []);
 
-  // ✅ CORREÇÃO: Carrega perfil com tratamento completo
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+  // ✅ Função de upload de imagem (adicionada aqui)
+  const uploadImagem = async (arquivo: File, pasta: 'profiles' | 'portfolio' | 'stories') => {
+    const formatosPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!formatosPermitidos.includes(arquivo.type)) {
+      return { url: null, erro: 'Formato inválido! Use JPG, PNG ou WEBP.' };
+    }
 
-      // Se já tem perfil no contexto, usa ele
-      if (profile) {
-        fillForm(profile);
-        setLoading(false);
-        return;
-      }
+    const tamanhoMax = pasta === 'portfolio' ? 10 : 5;
+    if (arquivo.size > tamanhoMax * 1024 * 1024) {
+      return { url: null, erro: `Arquivo muito grande! Máximo ${tamanhoMax}MB.` };
+    }
 
-      // Se não tem, busca diretamente + atualiza o contexto
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+    const nomeArquivo = `${Date.now()}_${arquivo.name.replace(/\s+/g, '_')}`;
 
-        if (error) {
-          console.warn('Perfil não encontrado no banco, vamos criar vazio:', error.message);
-          // Não interrompe, vai permitir preencher e salvar
-        }
+    const { data, error } = await supabase.storage
+      .from(pasta)
+      .upload(nomeArquivo, arquivo, { cacheControl: '3600', upsert: true });
 
-        if (data) {
-          fillForm(data);
-        }
-      } catch (err) {
-        console.error('Erro ao carregar perfil:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (error) {
+      console.error('Erro upload:', error);
+      return { url: null, erro: 'Não foi possível enviar a imagem.' };
+    }
 
-    loadProfile();
-  }, [user, profile]);
+    const { data: urlPublica } = supabase.storage
+      .from(pasta)
+      .getPublicUrl(nomeArquivo);
 
-  // Função auxiliar para preencher os campos
-  const fillForm = (p: any) => {
+    return { url: urlPublica.publicUrl, erro: null };
+  };
+
+  // Função auxiliar para preencher os campos do formulário
+  const fillForm = (p: Profile | null) => {
+    if (!p) return;
     setFullName(p.full_name || '');
     setTitle(p.title || '');
     setBio(p.bio || '');
@@ -96,6 +90,65 @@ export function DashboardProfilePage({ onNavigate }: Props) {
     setSpecialties(p.specialties || []);
   };
 
+  // Carrega dados do perfil
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      if (profile) {
+        fillForm(profile);
+        setLoading(false);
+        return;
+      }
+
+      console.log('🔄 Perfil não encontrado no contexto, buscando novamente...');
+      await refreshProfile();
+      setLoading(false);
+    };
+
+    loadProfileData();
+  }, [user, profile, refreshProfile]);
+
+  // ✅ Função para alterar foto de perfil
+  const handleAlterarAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+
+    setEnviandoAvatar(true);
+    const resultado = await uploadImagem(arquivo, 'profiles');
+    setEnviandoAvatar(false);
+
+    if (resultado.erro) {
+      toast(resultado.erro, 'error');
+      return;
+    }
+
+    setAvatarUrl(resultado.url || '');
+    toast('Foto de perfil enviada!', 'success');
+  };
+
+  // ✅ Função para alterar capa
+  const handleAlterarCapa = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+
+    setEnviandoCapa(true);
+    const resultado = await uploadImagem(arquivo, 'profiles');
+    setEnviandoCapa(false);
+
+    if (resultado.erro) {
+      toast(resultado.erro, 'error');
+      return;
+    }
+
+    setCoverUrl(resultado.url || '');
+    toast('Imagem de capa enviada!', 'success');
+  };
+
+  // Adiciona especialidade
   function addSpecialty(s: string) {
     const v = s.trim();
     if (!v) return;
@@ -104,20 +157,22 @@ export function DashboardProfilePage({ onNavigate }: Props) {
     setNewSpecialty('');
   }
 
+  // Remove especialidade
   function removeSpecialty(s: string) {
     setSpecialties((prev) => prev.filter((x) => x !== s));
   }
 
-  // ✅ CORREÇÃO: Função de salvar ajustada para funcionar com RLS
+  // Salva alterações no perfil
   async function save() {
     if (!user) return;
     if (!fullName.trim()) {
       toast('Digite seu nome completo.', 'error');
       return;
     }
+
     setSaving(true);
-    
-    const dados = {
+
+    const dadosAtualizados = {
       id: user.id,
       full_name: fullName.trim(),
       title: title.trim(),
@@ -132,15 +187,15 @@ export function DashboardProfilePage({ onNavigate }: Props) {
       updated_at: new Date().toISOString(),
     };
 
-    // Usamos upsert com confirmação de linha
     const { error } = await supabase
       .from('profiles')
-      .upsert(dados, { onConflict: 'id' });
+      .upsert(dadosAtualizados, { onConflict: 'id' });
 
     setSaving(false);
+
     if (error) {
-      console.error('Erro ao salvar perfil:', error);
-      toast('Erro ao salvar: ' + error.message, 'error');
+      console.error('❌ Erro ao salvar perfil:', error);
+      toast(`Erro ao salvar: ${error.message}`, 'error');
       return;
     }
 
@@ -168,7 +223,11 @@ export function DashboardProfilePage({ onNavigate }: Props) {
         <div className="lg:col-span-1 space-y-4">
           <div className="card-surface overflow-hidden">
             <div className="h-28 bg-ink-800 relative">
-              {coverUrl ? <img src={coverUrl} alt="" className="h-full w-full object-cover opacity-70" /> : <div className="absolute inset-0 grid-bg opacity-40" />}
+              {coverUrl ? (
+                <img src={coverUrl} alt="Capa do perfil" className="h-full w-full object-cover opacity-70" />
+              ) : (
+                <div className="absolute inset-0 grid-bg opacity-40" />
+              )}
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-ink-900" />
             </div>
             <div className="px-5 pb-5 -mt-12">
@@ -180,7 +239,9 @@ export function DashboardProfilePage({ onNavigate }: Props) {
               <p className="text-xs text-muted-light">{title || 'Profissional da construção'}</p>
               <div className="flex items-center gap-3 mt-2 text-[11px] text-muted">
                 {city && <span className="flex items-center gap-1"><MapPin size={11} /> {city}</span>}
-                <span className="flex items-center gap-1 text-amber-400"><Star size={11} fill="currentColor" /> {Number(profile?.rating ?? 5).toFixed(1)}</span>
+                <span className="flex items-center gap-1 text-amber-400">
+                  <Star size={11} fill="currentColor" /> {Number(profile?.rating ?? 5.0).toFixed(1)}
+                </span>
               </div>
               {specialties.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
@@ -192,14 +253,18 @@ export function DashboardProfilePage({ onNavigate }: Props) {
           <div className="card-surface p-4">
             <div className="flex items-start gap-2.5">
               <AlertCircle size={15} className="text-amber-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-muted leading-relaxed">Dica: use uma foto de perfil nítida e um banner que mostre seu trabalho.</p>
+              <p className="text-xs text-muted leading-relaxed">
+                Dica: use uma foto de perfil nítida e um banner que mostre seu trabalho.
+              </p>
             </div>
           </div>
         </div>
 
         <div className="lg:col-span-2 space-y-4">
           <div className="card-surface p-6">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><UserIcon size={16} /> Identidade</h3>
+            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <UserIcon size={16} /> Identidade
+            </h3>
             <div className="grid sm:grid-cols-2 gap-4">
               <Input label="Nome completo" value={fullName} onChange={(e) => setFullName(e.target.value)} />
               <Input label="Título profissional" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -208,7 +273,9 @@ export function DashboardProfilePage({ onNavigate }: Props) {
           </div>
 
           <div className="card-surface p-6">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><MapPin size={16} /> Localização e contato</h3>
+            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <MapPin size={16} /> Localização e contato
+            </h3>
             <div className="grid sm:grid-cols-3 gap-4">
               <Input label="Cidade" value={city} onChange={(e) => setCity(e.target.value)} />
               <Input label="Estado" value={state} onChange={(e) => setState(e.target.value)} maxLength={2} />
@@ -217,36 +284,148 @@ export function DashboardProfilePage({ onNavigate }: Props) {
           </div>
 
           <div className="card-surface p-6">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><Briefcase size={16} /> Experiência</h3>
-            <Input label="Anos de experiência" type="number" value={yearsExp} onChange={(e) => setYearsExp(Math.max(0, Number(e.target.value)))} />
+            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <Briefcase size={16} /> Experiência
+            </h3>
+            <Input
+              label="Anos de experiência"
+              type="number"
+              min="0"
+              value={yearsExp}
+              onChange={(e) => setYearsExp(Math.max(0, Number(e.target.value)))}
+            />
           </div>
 
           <div className="card-surface p-6">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><ImageIcon size={16} /> Especialidades</h3>
+            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <ImageIcon size={16} /> Especialidades
+            </h3>
             <div className="flex flex-wrap gap-2 mb-4">
               {categories.map((c) => {
                 const active = specialties.includes(c.name);
                 return (
-                  <button key={c.id} type="button" onClick={() => (active ? removeSpecialty(c.name) : addSpecialty(c.name))} className={cn('px-3 py-1.5 rounded-full text-xs font-semibold border transition-all', active ? 'bg-amber-400 text-ink-950 border-amber-400' : 'bg-ink-900 text-muted-light border-ink-700')}>{c.name}</button>
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => active ? removeSpecialty(c.name) : addSpecialty(c.name)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-xs font-semibold border transition-all',
+                      active 
+                        ? 'bg-amber-400 text-ink-950 border-amber-400' 
+                        : 'bg-ink-900 text-muted-light border-ink-700'
+                    )}
+                  >
+                    {c.name}
+                  </button>
                 );
               })}
             </div>
             <div className="flex gap-2">
-              <Input value={newSpecialty} onChange={(e) => setNewSpecialty(e.target.value)} placeholder="Adicionar personalizada" />
-              <Button type="button" variant="secondary" onClick={() => addSpecialty(newSpecialty)}>Adicionar</Button>
+              <Input
+                value={newSpecialty}
+                onChange={(e) => setNewSpecialty(e.target.value)}
+                placeholder="Adicionar especialidade personalizada"
+              />
+              <Button type="button" variant="secondary" onClick={() => addSpecialty(newSpecialty)}>
+                Adicionar
+              </Button>
             </div>
           </div>
 
+          {/* ✅ BLOCO DE IMAGENS MODIFICADO AQUI */}
           <div className="card-surface p-6">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><ImageIcon size={16} /> Imagens</h3>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Input label="URL foto perfil" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
-              <Input label="URL banner capa" value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} />
+            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <ImageIcon size={16} /> Imagens
+            </h3>
+            <div className="grid sm:grid-cols-2 gap-6">
+              {/* Foto de Perfil - Clicável */}
+              <div className="space-y-2">
+                <label className="text-xs uppercase text-gray-400 tracking-wider">
+                  FOTO DE PERFIL
+                </label>
+
+                <input
+                  type="file"
+                  id="input-avatar"
+                  accept="image/*"
+                  onChange={handleAlterarAvatar}
+                  className="hidden"
+                />
+
+                <label
+                  htmlFor="input-avatar"
+                  className="relative block h-28 w-full max-w-[120px] cursor-pointer rounded-lg border border-ink-700 bg-ink-800 overflow-hidden group hover:border-amber-400 transition-all"
+                >
+                  {enviandoAvatar ? (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Loader2 size={24} className="animate-spin text-amber-400" />
+                    </div>
+                  ) : avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Foto de perfil"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-gray-500 text-2xl">
+                      👤
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit size={20} className="text-white" />
+                  </div>
+                </label>
+                <p className="text-xs text-muted">Clique na imagem para alterar</p>
+              </div>
+
+              {/* Imagem de Capa - Clicável */}
+              <div className="space-y-2">
+                <label className="text-xs uppercase text-gray-400 tracking-wider">
+                  IMAGEM DE CAPA
+                </label>
+
+                <input
+                  type="file"
+                  id="input-capa"
+                  accept="image/*"
+                  onChange={handleAlterarCapa}
+                  className="hidden"
+                />
+
+                <label
+                  htmlFor="input-capa"
+                  className="relative block h-28 w-full cursor-pointer rounded-lg border border-ink-700 bg-ink-800 overflow-hidden group hover:border-amber-400 transition-all"
+                >
+                  {enviandoCapa ? (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Loader2 size={24} className="animate-spin text-amber-400" />
+                    </div>
+                  ) : coverUrl ? (
+                    <img
+                      src={coverUrl}
+                      alt="Imagem de capa"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-gray-500">
+                      Sem imagem
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit size={20} className="text-white" />
+                  </div>
+                </label>
+                <p className="text-xs text-muted">Clique na imagem para alterar</p>
+              </div>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button size="lg" icon={<Save size={16} />} loading={saving} onClick={save}>Salvar alterações</Button>
+            <Button size="lg" icon={<Save size={16} />} loading={saving} onClick={save}>
+              Salvar alterações
+            </Button>
           </div>
         </div>
       </div>

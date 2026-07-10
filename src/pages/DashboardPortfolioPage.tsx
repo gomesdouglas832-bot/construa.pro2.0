@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Pencil, Image as ImageIcon, Save, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Pencil, Image as ImageIcon, Save, AlertCircle, Edit, Loader2 } from 'lucide-react';
 import { supabase, type PortfolioItem } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { DashboardLayout, DashboardHeader } from '../components/DashboardLayout';
@@ -27,6 +27,57 @@ export function DashboardPortfolioPage({ onNavigate }: Props) {
   const [category, setCategory] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<PortfolioItem | null>(null);
 
+  // ✅ Estado para controle de upload
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
+
+  // ✅ Função de upload reutilizável
+  const uploadImagem = async (arquivo: File, pasta: 'profiles' | 'portfolio' | 'stories') => {
+    const formatosPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!formatosPermitidos.includes(arquivo.type)) {
+      return { url: null, erro: 'Formato inválido! Use JPG, PNG ou WEBP.' };
+    }
+
+    const tamanhoMax = pasta === 'portfolio' ? 10 : 5;
+    if (arquivo.size > tamanhoMax * 1024 * 1024) {
+      return { url: null, erro: `Arquivo muito grande! Máximo ${tamanhoMax}MB.` };
+    }
+
+    const nomeArquivo = `${Date.now()}_${arquivo.name.replace(/\s+/g, '_')}`;
+
+    const { data, error } = await supabase.storage
+      .from(pasta)
+      .upload(nomeArquivo, arquivo, { cacheControl: '3600', upsert: true });
+
+    if (error) {
+      console.error('Erro upload:', error);
+      return { url: null, erro: 'Não foi possível enviar a imagem.' };
+    }
+
+    const { data: urlPublica } = supabase.storage
+      .from(pasta)
+      .getPublicUrl(nomeArquivo);
+
+    return { url: urlPublica.publicUrl, erro: null };
+  };
+
+  // ✅ Função para selecionar e enviar imagem
+  const handleAlterarImagem = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+
+    setEnviandoImagem(true);
+    const resultado = await uploadImagem(arquivo, 'portfolio');
+    setEnviandoImagem(false);
+
+    if (resultado.erro) {
+      toast(resultado.erro, 'error');
+      return;
+    }
+
+    setImageUrl(resultado.url || '');
+    toast('Imagem enviada com sucesso!', 'success');
+  };
+
   async function load() {
     if (!user) return;
     const { data } = await supabase
@@ -52,18 +103,19 @@ export function DashboardPortfolioPage({ onNavigate }: Props) {
   }
 
   function openEdit(item: PortfolioItem) {
-    setEditing(item);
-    setTitle(item.title);
-    setDescription(item.description);
-    setImageUrl(item.image_url);
-    setCategory(item.category);
-    setModalOpen(true);
-  }
+  setEditing(item);
+  setTitle(item.title || '');
+  setDescription(item.description || '');
+  setImageUrl(item.image_url || '');
+  // ✅ Aqui está a correção: se for undefined, usa string vazia
+  setCategory(item.category ?? '');
+  setModalOpen(true);
+}
 
   async function save() {
     if (!user) return;
     if (!imageUrl.trim()) {
-      toast('Adicione a URL da imagem.', 'error');
+      toast('Adicione uma imagem ao projeto.', 'error');
       return;
     }
     if (!title.trim()) {
@@ -174,19 +226,46 @@ export function DashboardPortfolioPage({ onNavigate }: Props) {
       {/* Add/Edit modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Editar projeto' : 'Novo projeto'} size="md">
         <div className="space-y-4">
-          <Input
-            label="URL da imagem"
-            name="imageUrl"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://..."
-            hint="Cole o link direto da foto do seu trabalho"
-          />
-          {imageUrl && (
-            <div className="aspect-video rounded-xl overflow-hidden border border-ink-700 bg-ink-800">
-              <img src={imageUrl} alt="preview" className="h-full w-full object-cover" />
-            </div>
-          )}
+          {/* ✅ ÁREA DE IMAGEM CLICÁVEL NO LUGAR DO CAMPO DE URL */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white">Imagem do projeto</label>
+            
+            <input
+              type="file"
+              id="input-imagem-projeto"
+              accept="image/*"
+              onChange={handleAlterarImagem}
+              className="hidden"
+            />
+
+            <label
+              htmlFor="input-imagem-projeto"
+              className="relative block aspect-video w-full cursor-pointer rounded-xl border border-ink-700 bg-ink-800 overflow-hidden group hover:border-amber-400 transition-all"
+            >
+              {enviandoImagem ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Loader2 size={32} className="animate-spin text-amber-400" />
+                </div>
+              ) : imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Pré-visualização"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col h-full w-full items-center justify-center gap-2 text-gray-500">
+                  <ImageIcon size={36} />
+                  <span className="text-sm">Clique para adicionar imagem</span>
+                </div>
+              )}
+
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Edit size={24} className="text-white" />
+              </div>
+            </label>
+            <p className="text-xs text-muted">Formatos: JPG, PNG, WEBP. Tamanho máximo: 10MB</p>
+          </div>
+
           <Input
             label="Título"
             name="title"

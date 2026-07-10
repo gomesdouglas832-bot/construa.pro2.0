@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Clock, Save, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Clock, Save, AlertCircle, Image as ImageIcon, Edit, Loader2 } from 'lucide-react';
 import { supabase, type Story } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { DashboardLayout, DashboardHeader } from '../components/DashboardLayout';
@@ -25,6 +25,57 @@ export function DashboardStoriesPage({ onNavigate }: Props) {
   const [caption, setCaption] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<Story | null>(null);
 
+  // ✅ Estado para controle do upload
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
+
+  // ✅ Função de upload (mesma estrutura, pronta para trocar para Cloudinary depois)
+  const uploadImagem = async (arquivo: File, pasta: 'profiles' | 'portfolio' | 'stories') => {
+    const formatosPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!formatosPermitidos.includes(arquivo.type)) {
+      return { url: null, erro: 'Formato inválido! Use JPG, PNG ou WEBP.' };
+    }
+
+    const tamanhoMax = 5; // 5MB para stories
+    if (arquivo.size > tamanhoMax * 1024 * 1024) {
+      return { url: null, erro: `Arquivo muito grande! Máximo ${tamanhoMax}MB.` };
+    }
+
+    const nomeArquivo = `${Date.now()}_${arquivo.name.replace(/\s+/g, '_')}`;
+
+    const { data, error } = await supabase.storage
+      .from(pasta)
+      .upload(nomeArquivo, arquivo, { cacheControl: '3600', upsert: true });
+
+    if (error) {
+      console.error('Erro upload:', error);
+      return { url: null, erro: 'Não foi possível enviar a imagem.' };
+    }
+
+    const { data: urlPublica } = supabase.storage
+      .from(pasta)
+      .getPublicUrl(nomeArquivo);
+
+    return { url: urlPublica.publicUrl, erro: null };
+  };
+
+  // ✅ Função para selecionar e enviar imagem
+  const handleAlterarImagem = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+
+    setEnviandoImagem(true);
+    const resultado = await uploadImagem(arquivo, 'stories');
+    setEnviandoImagem(false);
+
+    if (resultado.erro) {
+      toast(resultado.erro, 'error');
+      return;
+    }
+
+    setImageUrl(resultado.url || '');
+    toast('Imagem enviada com sucesso!', 'success');
+  };
+
   async function load() {
     if (!user) return;
     const { data } = await supabase
@@ -46,29 +97,33 @@ export function DashboardStoriesPage({ onNavigate }: Props) {
     setModalOpen(true);
   }
 
-  async function save() {
-    if (!user) return;
-    if (!imageUrl.trim()) {
-      toast('Adicione a URL da imagem.', 'error');
-      return;
-    }
-    setSaving(true);
-    const { error } = await supabase.from('stories').insert({
-      profile_id: user.id,
-      image_url: imageUrl.trim(),
-      caption: caption.trim(),
-      status: 'active',
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    });
-    setSaving(false);
-    if (error) {
-      toast('Erro ao publicar: ' + error.message, 'error');
-      return;
-    }
-    toast('Story publicado!', 'success');
-    setModalOpen(false);
-    load();
+async function save() {
+  if (!user) return;
+  if (!imageUrl.trim()) {
+    toast('Adicione uma imagem para publicar.', 'error');
+    return;
   }
+  setSaving(true);
+
+  const { error } = await supabase.from('stories').insert({
+    profile_id: user.id,
+    image_url: imageUrl.trim(),
+    caption: caption.trim() || null,
+    status: 'active',
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  });
+
+  setSaving(false);
+  if (error) {
+    console.error('Erro completo:', error); // mostra detalhes no console
+    toast(`Erro ao publicar: ${error.message}`, 'error');
+    return;
+  }
+
+  toast('Story publicado com sucesso! ✅', 'success');
+  setModalOpen(false);
+  load();
+}
 
   async function remove(s: Story) {
     const { error } = await supabase.from('stories').delete().eq('id', s.id);
@@ -133,29 +188,49 @@ export function DashboardStoriesPage({ onNavigate }: Props) {
               const expired = s.status !== 'active' || new Date(s.expires_at) <= new Date();
               return (
                 <div key={s.id} className="card-surface overflow-hidden group relative">
-                  <div className="aspect-[9/16] relative bg-ink-800">
-                    <img src={s.image_url} alt={s.caption} className={cn('h-full w-full object-cover', expired && 'opacity-40 grayscale')} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    <div className="absolute top-2 left-2">
-                      {expired ? (
-                        <Badge variant="muted" icon={<Clock size={10} />}>Expirado</Badge>
-                      ) : (
-                        <Badge variant="success" icon={<span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}>No ar</Badge>
+                  {/* ✅ AQUI: Efeito da borda dourada para ativos / cinza para expirados/vistos */}
+                  <div className={cn(
+                    'aspect-[9/16] relative bg-ink-800 rounded-lg p-0.5',
+                    expired 
+                      ? 'bg-gray-600/50' // cinza para expirados/vistos
+                      : 'bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300' // dourado para novos/ativos
+                  )}>
+                    <div className="w-full h-full bg-ink-800 rounded-[6px] overflow-hidden">
+                      <img 
+                        src={s.image_url} 
+                        alt={s.caption || 'Story'} 
+                        className={cn(
+                          'h-full w-full object-cover', 
+                          expired && 'opacity-50 grayscale-[30%]'
+                        )} 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                      
+                      <div className="absolute top-2 left-2">
+                        {expired ? (
+                          <Badge variant="muted" icon={<Clock size={10} />}>Expirado</Badge>
+                        ) : (
+                          <Badge variant="success" icon={<span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}>No ar</Badge>
+                        )}
+                      </div>
+
+                      <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setConfirmDelete(s)}
+                          className="h-7 w-7 rounded-lg bg-ink-950/80 backdrop-blur border border-ink-600 flex items-center justify-center text-white hover:text-red-400 hover:border-red-400 transition-all"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+
+                      {s.caption && (
+                        <p className="absolute bottom-2 left-2 right-2 text-[10px] text-white font-medium line-clamp-2">
+                          {s.caption}
+                        </p>
                       )}
                     </div>
-                    <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => setConfirmDelete(s)}
-                        className="h-7 w-7 rounded-lg bg-ink-950/80 backdrop-blur border border-ink-600 flex items-center justify-center text-white hover:text-red-400 hover:border-red-400 transition-all"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                    {s.caption && (
-                      <p className="absolute bottom-2 left-2 right-2 text-[10px] text-white font-medium line-clamp-2">{s.caption}</p>
-                    )}
                   </div>
-                  <div className="px-3 py-2">
+                  <div className="px-2 pt-2 pb-1">
                     <p className="text-[10px] text-muted">{formatRelative(s.created_at)} atrás</p>
                   </div>
                 </div>
@@ -165,23 +240,49 @@ export function DashboardStoriesPage({ onNavigate }: Props) {
         </>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Publicar story" size="md">
+      {/* Modal de publicação */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Publicar story" size="sm">
         <div className="space-y-4">
-          <Input
-            label="URL da imagem"
-            name="imageUrl"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://..."
-            hint="Formato vertical (9:16) funciona melhor"
-          />
-          {imageUrl && (
-            <div className="flex justify-center">
-              <div className="aspect-[9/16] w-40 rounded-xl overflow-hidden border border-ink-700 bg-ink-800">
-                <img src={imageUrl} alt="preview" className="h-full w-full object-cover" />
+          {/* ✅ ÁREA CLICÁVEL PARA UPLOAD - no lugar do campo de URL */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white">Imagem do Story</label>
+            
+            <input
+              type="file"
+              id="input-story-imagem"
+              accept="image/*"
+              onChange={handleAlterarImagem}
+              className="hidden"
+            />
+
+            <label
+              htmlFor="input-story-imagem"
+              className="relative block aspect-[9/16] w-full max-w-[160px] mx-auto cursor-pointer rounded-xl border border-ink-700 bg-ink-800 overflow-hidden group hover:border-amber-400 transition-all"
+            >
+              {enviandoImagem ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Loader2 size={28} className="animate-spin text-amber-400" />
+                </div>
+              ) : imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Pré-visualização do story"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col h-full w-full items-center justify-center gap-2 text-gray-500">
+                  <ImageIcon size={32} />
+                  <span className="text-xs text-center px-2">Clique para adicionar<br/>imagem vertical</span>
+                </div>
+              )}
+
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Edit size={20} className="text-white" />
               </div>
-            </div>
-          )}
+            </label>
+            <p className="text-xs text-center text-muted">Formato vertical (9:16) recomendado • Máx 5MB</p>
+          </div>
+
           <Textarea
             label="Legenda (opcional)"
             name="caption"
@@ -190,10 +291,12 @@ export function DashboardStoriesPage({ onNavigate }: Props) {
             rows={2}
             placeholder="Ex: Acabamento da cozinha saindo hoje!"
           />
+
           <div className="flex items-center gap-2 text-xs text-muted">
             <Clock size={13} className="text-amber-400" />
             Fica no ar por 24 horas
           </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
             <Button icon={<Save size={15} />} loading={saving} onClick={save}>Publicar</Button>
@@ -201,6 +304,7 @@ export function DashboardStoriesPage({ onNavigate }: Props) {
         </div>
       </Modal>
 
+      {/* Modal de confirmação de exclusão */}
       <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Excluir story" size="sm">
         <p className="text-sm text-muted-light mb-6">Tem certeza que deseja excluir este story? Esta ação não pode ser desfeita.</p>
         <div className="flex justify-end gap-2">
