@@ -10,12 +10,13 @@ export function UpdatePassword({ onNavigate }: { onNavigate: (path: string) => v
     const processarToken = async () => {
       const hash = window.location.hash;
 
-      if (!hash.includes('access_token=')) {
+      // Se não tem token
+      if (!hash || !hash.includes('access_token=')) {
         setStatus('invalid');
         return;
       }
 
-      // Funciona tanto com ? quanto com &
+      // CORREÇÃO: lê tanto com ? quanto com &
       const paramsStr = hash.replace(/^#reset-password[?&]/, '');
       const params = new URLSearchParams(paramsStr);
 
@@ -28,6 +29,7 @@ export function UpdatePassword({ onNavigate }: { onNavigate: (path: string) => v
         return;
       }
 
+      // Define sessão manualmente
       const { error } = await supabase.auth.setSession({ access_token, refresh_token });
       setStatus(error ? 'invalid' : 'valid');
     };
@@ -38,7 +40,6 @@ export function UpdatePassword({ onNavigate }: { onNavigate: (path: string) => v
   const salvarSenha = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
@@ -54,13 +55,13 @@ export function UpdatePassword({ onNavigate }: { onNavigate: (path: string) => v
     }
   };
 
-  if (status === 'loading') return <div className="min-h-screen bg-black flex items-center justify-center text-white">Verificando link...</div>;
+  if (status === 'loading') return <div className="min-h-screen bg-black flex items-center justify-center text-white">Verificando...</div>;
 
   if (status === 'invalid') return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-gray-900 p-8 rounded-xl border border-red-800 text-center">
-        <h2 className="text-xl text-white font-bold mb-3">Link inválido ou expirado</h2>
-        <p className="text-gray-400 mb-5">Solicite a recuperação novamente.</p>
+        <h2 className="text-xl text-white font-bold mb-3">Link inválido ou já usado</h2>
+        <p className="text-gray-400 mb-5">Solicite uma nova recuperação de senha.</p>
         <button onClick={() => onNavigate('forgot-password')} className="w-full bg-amber-500 py-2 rounded text-black font-medium">Solicitar novo link</button>
       </div>
     </div>
@@ -84,7 +85,7 @@ export function UpdatePassword({ onNavigate }: { onNavigate: (path: string) => v
           disabled={loading}
           className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 rounded disabled:opacity-50"
         >
-          {loading ? 'Salvando...' : 'Salvar nova senha'}
+          {loading ? 'Salvando...' : 'Salvar senha'}
         </button>
       </form>
     </div>
