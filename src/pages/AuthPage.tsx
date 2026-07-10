@@ -85,7 +85,7 @@ export function AuthPage({ mode, onNavigate }: Props) {
             </div>
           </div>
 
-          <p className="text-xs text-muted">© 2026 ObraLink. Construído para quem constrói.</p>
+          <p className="text-xs text-muted">© 2026 CONSTRUA.PRO Construído para quem constrói.</p>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export function AuthPage({ mode, onNavigate }: Props) {
             <div className="h-10 w-10 rounded-xl bg-amber-400 flex items-center justify-center text-ink-950">
               <HardHat size={22} strokeWidth={2.5} />
             </div>
-            <span className="text-xl font-extrabold text-white">Obra<span className="text-amber-400">Link</span></span>
+            <span className="text-xl font-extrabold text-white">CONSTRUA.<span className="text-amber-400">PRO</span></span>
           </div>
 
           <h1 className="text-3xl font-extrabold text-white">
