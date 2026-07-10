@@ -264,12 +264,18 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
                   onClick={() => setActiveStory(i)}
                   className="shrink-0 w-24 h-36 rounded-2xl overflow-hidden border border-ink-700 hover:border-amber-400/50 transition-all relative group"
                 >
-                  <img src={s.image_url} alt={s.caption} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute top-2 left-2 h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-                  {s.caption && (
-                    <p className="absolute bottom-2 left-2 right-2 text-[10px] text-white font-medium line-clamp-2">{s.caption}</p>
-                  )}
+                  <img 
+  src={s.image_url} 
+  alt={s.caption ?? ""} 
+  className="h-full w-full object-cover group-hover:scale-105 transition-transform" 
+/>
+<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+<div className="absolute top-2 left-2 h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+{s.caption && (
+  <p className="absolute bottom-2 left-2 right-2 text-[10px] text-white font-medium line-clamp-2">
+    {s.caption}
+  </p>
+)}
                 </button>
               ))}
             </div>

@@ -461,18 +461,17 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
                 </Button>
                 {Array.from({ length: totalPages }).map((_, idx) => (
                   <Button
-                    key={idx}
-                    variant={currentPage === idx + 1 ? "primary" : "muted"}
-                    onClick={() => setCurrentPage(idx + 1)}
-                    className={cn(
-                      "min-w-[36px] justify-center",
-                      currentPage === idx + 1 
-                        ? "bg-amber-400 text-ink-950 border-amber-400" 
-                        : "text-white hover:bg-ink-800"
-                    )}
-                  >
-                    {idx + 1}
-                  </Button>
+  key={idx}
+  onClick={() => setCurrentPage(idx + 1)}
+  className={cn(
+    "min-w-[36px] h-9 flex items-center justify-center border-none transition-colors",
+    currentPage === idx + 1 
+      ? "bg-amber-400 text-ink-950 font-medium" 
+      : "bg-transparent text-white hover:bg-ink-800"
+  )}
+>
+  {idx + 1}
+</Button>
                 ))}
                 <Button
                   variant="secondary"
