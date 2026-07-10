@@ -9,9 +9,8 @@ export function ForgotPassword({ onNavigate }: { onNavigate: (path: string) => v
     e.preventDefault();
     setLoading(true);
     
-    // O redirectTo deve ser a URL base + o hash da rota de reset
-    // O Supabase vai anexar os parâmetros de token automaticamente após o #
-    const redirectTo = `${window.location.origin}/#reset-password`;
+    // URL correta para o seu domínio com rota em hash
+    const redirectTo = 'https://construa-pro2-0.vercel.app/#reset-password';
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectTo,
@@ -20,7 +19,7 @@ export function ForgotPassword({ onNavigate }: { onNavigate: (path: string) => v
     if (error) {
       alert(`Erro: ${error.message}`);
     } else {
-      alert('Enviamos um e-mail com as instruções para redefinir sua senha.');
+      alert('Enviamos um e-mail com as instruções para redefinir sua senha. Verifique também a caixa de spam!');
       onNavigate('signin');
     }
     setLoading(false);
