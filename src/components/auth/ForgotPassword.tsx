@@ -9,17 +9,17 @@ export function ForgotPassword({ onNavigate }: { onNavigate: (path: string) => v
     e.preventDefault();
     setLoading(true);
     
-    // URL correta para o seu domínio com rota em hash
+    // Formato compatível com rotas em hash
     const redirectTo = 'https://construa-pro2-0.vercel.app/#reset-password';
     
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectTo,
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo,
     });
 
     if (error) {
       alert(`Erro: ${error.message}`);
     } else {
-      alert('Enviamos um e-mail com as instruções para redefinir sua senha. Verifique também a caixa de spam!');
+      alert('Link enviado! Abra no navegador, não use a prévia do e-mail.');
       onNavigate('signin');
     }
     setLoading(false);
@@ -29,9 +29,7 @@ export function ForgotPassword({ onNavigate }: { onNavigate: (path: string) => v
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <form onSubmit={handleReset} className="w-full max-w-md bg-gray-900 p-8 rounded-xl border border-gray-800 shadow-xl">
         <h2 className="text-2xl text-white font-bold mb-2">Recuperar senha</h2>
-        <p className="text-gray-400 mb-6 text-sm">
-          Digite seu e-mail abaixo e enviaremos um link para redefinição.
-        </p>
+        <p className="text-gray-400 mb-6 text-sm">Digite seu e-mail cadastrado.</p>
         
         <input 
           type="email" 
@@ -44,7 +42,7 @@ export function ForgotPassword({ onNavigate }: { onNavigate: (path: string) => v
         
         <button 
           disabled={loading} 
-          className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 rounded transition-all duration-200"
+          className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 rounded"
         >
           {loading ? 'Enviando...' : 'Enviar link de recuperação'}
         </button>
@@ -52,7 +50,7 @@ export function ForgotPassword({ onNavigate }: { onNavigate: (path: string) => v
         <button 
           type="button" 
           onClick={() => onNavigate('signin')} 
-          className="w-full mt-4 text-gray-500 hover:text-white transition-colors text-sm"
+          className="w-full mt-4 text-gray-500 hover:text-white text-sm"
         >
           Voltar ao login
         </button>
