@@ -23,6 +23,7 @@ export function DashboardProfilePage({ onNavigate }: Props) {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [instagram, setInstagram] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [yearsExp, setYearsExp] = useState(0);
@@ -180,6 +181,7 @@ export function DashboardProfilePage({ onNavigate }: Props) {
       city: city.trim(),
       state: state.trim(),
       whatsapp: whatsapp.replace(/\D/g, ''),
+      instagram: instagram.trim() || null,
       avatar_url: avatarUrl.trim() || null,
       cover_url: coverUrl.trim() || null,
       years_experience: yearsExp,
@@ -276,11 +278,19 @@ export function DashboardProfilePage({ onNavigate }: Props) {
             <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
               <MapPin size={16} /> Localização e contato
             </h3>
-            <div className="grid sm:grid-cols-3 gap-4">
-              <Input label="Cidade" value={city} onChange={(e) => setCity(e.target.value)} />
-              <Input label="Estado" value={state} onChange={(e) => setState(e.target.value)} maxLength={2} />
-              <Input label="WhatsApp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
-            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <Input label="Cidade" value={city} onChange={(e) => setCity(e.target.value)} />
+  <Input label="Estado" value={state} onChange={(e) => setState(e.target.value)} maxLength={2} />
+  <Input label="WhatsApp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+  {/* ✅ CAMPO DO INSTAGRAM AQUI */}
+  <Input 
+    label="Instagram" 
+    placeholder="@seuperfil" 
+    value={instagram} 
+    onChange={(e) => setInstagram(e.target.value)} 
+  />
+</div>
+<p className="text-xs text-muted mt-1">Você pode digitar com ou sem o @ — o link funcionará corretamente</p>
           </div>
 
           <div className="card-surface p-6">

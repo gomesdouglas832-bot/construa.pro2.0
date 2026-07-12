@@ -34,6 +34,7 @@ export type Profile = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  instagram: string | null;
 };
 
 export type PortfolioItem = {

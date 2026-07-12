@@ -12,6 +12,7 @@ import { buildWhatsappUrl, formatRelative, cn } from '../lib/utils';
 import { Input, Textarea } from '../components/ui/Input';
 import { useToast } from '../components/ui/Toast'; // ✅ Importação correta do seu componente
 
+
 type Props = {
   id: string;
   onNavigate: (path: string) => void;
@@ -203,12 +204,27 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{profile.full_name}</h1>
-                  {profile.verified && (
-                    <Badge variant="amber" icon={<ShieldCheck size={12} />}>Verificado</Badge>
-                  )}
-                </div>
-                <p className="text-base text-muted-lighter mt-1">{profile.title || 'Profissional da construção civil'}</p>
+  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{profile.full_name}</h1>
+  {profile.verified && (
+    <Badge variant="amber" icon={<ShieldCheck size={12} />}>Verificado</Badge>
+  )}
+</div>
+
+{/* ⭐ Estrelas abaixo do nome */}
+<div className="flex items-center gap-1.5 my-2">
+  {Array.from({ length: 5 }).map((_, i) => (
+    <Star
+      key={i}
+      size={16}
+      className={i < Math.round(profile.rating || 0) ? "text-amber-400 fill-amber-400" : "text-gray-600"}
+    />
+  ))}
+  <span className="text-sm text-muted-lighter ml-2">
+    {Number(profile.rating || 0).toFixed(1)} ({ratings.length} avaliações)
+  </span>
+</div>
+
+<p className="text-base text-muted-lighter">{profile.title || 'Profissional da construção civil'}</p>
                 <div className="flex items-center gap-4 mt-3 text-sm text-muted flex-wrap">
                   {profile.city && (
                     <span className="flex items-center gap-1.5"><MapPin size={14} className="text-amber-400" /> {profile.city}{profile.state ? `, ${profile.state}` : ''}</span>
@@ -230,19 +246,40 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
               </div>
               <div className="w-full sm:w-auto flex flex-col gap-2 sm:items-end">
                 {profile.whatsapp ? (
-                  <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={trackWhatsapp}>
-                    <Button size="lg" icon={<MessageCircle size={18} />} className="w-full sm:w-auto animate-pulse-glow">
-                      Falar no WhatsApp
-                    </Button>
-                  </a>
-                ) : (
-                  <Button size="lg" disabled className="w-full sm:w-auto">Sem contato direto</Button>
-                )}
-                {profile.whatsapp && (
-                  <p className="text-[11px] text-muted text-center sm:text-right">
-                    Resposta direta, sem intermediário
-                  </p>
-                )}
+  <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={trackWhatsapp}>
+    <Button size="lg" icon={<MessageCircle size={18} />} className="w-full sm:w-auto animate-pulse-glow">
+      Falar no WhatsApp
+    </Button>
+  </a>
+) : (
+  <Button size="lg" disabled className="w-full sm:w-auto">Sem contato direto</Button>
+)}
+
+{/* 📸 Botão Instagram — só aparece se preenchido */}
+{profile.instagram && profile.instagram.trim() !== '' && (
+  <a 
+    href={`https://instagram.com/${profile.instagram.replace('@', '').trim()}`} 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="mt-2 block"
+  >
+    <Button variant="secondary" size="lg" className="w-full sm:w-auto gap-2">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+      </svg>
+      Ver Instagram
+    </Button>
+  </a>
+)}
+
+{profile.whatsapp && (
+  <p className="text-[11px] text-muted text-center sm:text-right mt-2">
+    Resposta direta, sem intermediário
+  </p>
+)}
+              
               </div>
             </div>
           </div>

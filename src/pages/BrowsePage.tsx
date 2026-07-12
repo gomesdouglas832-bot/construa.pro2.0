@@ -40,7 +40,7 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
   const [city, setCity] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
   const [currentPage, setCurrentPage] = useState(1);
 
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
@@ -227,7 +227,6 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
           <p className="text-sm text-muted mt-1.5">Encontre o especialista certo para a sua obra.</p>
         </div>
 
-        {/* 🥇 Melhores Avaliados - TEXTO CENTRALIZADO */}
         {!loading && topProfessionals.length > 0 && (
           <div className="mb-5">
             <h3 className="text-xs text-muted mb-3 text-center">Melhores Avaliados</h3>
@@ -269,7 +268,6 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
           </div>
         )}
 
-        {/* 📱 Histórias */}
         {!loading && allStories.length > 0 && (
           <div className="mb-6">
             <h3 className="text-xs text-muted mb-3 text-center">Histórias</h3>
@@ -299,7 +297,6 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
           </div>
         )}
 
-        {/* Barra de busca e filtros */}
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <form onSubmit={submitSearch} className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
@@ -359,7 +356,6 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
           </div>
         )}
 
-        {/* Categorias */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-5">
           <button
             onClick={() => { setActiveCat(undefined); onNavigate('/explore'); }}
@@ -392,63 +388,100 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
           })}
         </div>
 
-        {/* Lista de profissionais com paginação */}
-        {loading ? (
-          <div className="flex justify-center py-12"><Spinner size={32} /></div>
-        ) : profiles.length === 0 ? (
-          <EmptyState
-            icon={<Building2 size={26} />}
-            title="Nenhum profissional encontrado"
-            description={hasFilters ? 'Tente ajustar ou limpar os filtros.' : 'Cadastre os primeiros profissionais no banco de dados!'}
-            action={
-              hasFilters ? (
-                <Button variant="primary" onClick={clearFilters}>Limpar filtros</Button>
-              ) : undefined
-            }
-          />
-        ) : (
-          <>
-            <p className="text-xs text-muted mb-3 text-center">{profiles.length} profissional(is) encontrados • Página {currentPage} de {totalPages}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {paginatedProfiles.map((p, i) => (
-                <button
-                  key={p.id}
-                  onClick={() => onNavigate(`/p/${p.id}`)}
-                  style={{ animationDelay: `${i * 30}ms` }}
-                  className="card-surface p-4 text-left hover:border-amber-400/40 hover:shadow-card group animate-slide-up rounded-lg"
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar name={p.full_name} src={p.avatar_url} size="md" ring={p.verified} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="font-semibold text-sm text-white truncate group-hover:text-amber-400 transition-colors">
-                          {p.full_name}
-                        </h3>
-                        {p.verified && <ShieldCheck size={13} className="text-amber-400 shrink-0" />}
-                      </div>
-                      <p className="text-xs text-muted-light truncate">{p.title || 'Profissional da construção'}</p>
-                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted">
-                        {p.city && <span className="flex items-center gap-1"><MapPin size={10} /> {p.city}</span>}
-                        <span className="flex items-center gap-1 text-amber-400">
-                          <Star size={10} fill="currentColor" /> {Number(p.rating || 0).toFixed(1)}
-                        </span>
-                        {p.years_experience > 0 && <span>{p.years_experience} anos exp.</span>}
-                      </div>
-                    </div>
-                  </div>
-                  {p.bio && (
-                    <p className="text-xs text-muted mt-2 line-clamp-2 leading-relaxed">{p.bio}</p>
-                  )}
-                  {p.specialties && p.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      <Badge variant="muted">{p.specialties.slice(0, 3).join(', ')}</Badge>
-                    </div>
-                  )}
-                </button>
-              ))}
+     {/* ✅ LISTA DE PROFISSIONAIS - LAYOUT AJUSTADO */}
+{loading ? (
+  <div className="flex justify-center py-12"><Spinner size={32} /></div>
+) : profiles.length === 0 ? (
+  <EmptyState
+    icon={<Building2 size={26} />}
+    title="Nenhum profissional encontrado"
+    description={hasFilters ? 'Tente ajustar ou limpar os filtros.' : 'Cadastre os primeiros profissionais no banco de dados!'}
+    action={
+      hasFilters ? (
+        <Button variant="primary" onClick={clearFilters}>Limpar filtros</Button>
+      ) : undefined
+    }
+  />
+) : (
+  <>
+    <p className="text-xs text-muted mb-4 text-center">
+      {profiles.length} profissional(is) encontrados • Página {currentPage} de {totalPages}
+    </p>
+
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-5 md:gap-6 mb-8">
+      {paginatedProfiles.map((p, i) => (
+        <div
+          key={p.id}
+         className="card-surface rounded-xl overflow-hidden border border-ink-800 hover:border-amber-400/40 transition-all group animate-slide-up flex flex-col w-full h-[595px] md:h-[495px]"
+        >
+          {/* 🖼️ IMAGEM */}
+          <div className="relative w-full h-[52%] bg-ink-800">
+            <img
+              src={p.avatar_url || '/placeholder-profissional.jpg'}
+              alt={p.full_name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute top-2 right-2 flex flex-col gap-1">
+              {p.verified && (
+                <Badge variant="amber" size="sm" className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5">
+                  <ShieldCheck size={10} /> Verificado
+                </Badge>
+              )}
+              <Badge variant="green" size="sm" className="text-[9px] px-1.5 py-0.5">
+                Disponível
+              </Badge>
+            </div>
+          </div>
+
+          {/* ℹ️ INFORMAÇÕES */}
+          <div className="p-3 flex flex-col flex-1 justify-between">
+            <div className="space-y-1.5">
+              <h3 className="font-bold text-base text-white leading-tight group-hover:text-amber-400 transition-colors">
+  {p.full_name}
+</h3>
+
+{/* ⭐ AVALIAÇÃO COM ESTRELAS - NOVO BLOCO */}
+<div className="flex items-center gap-0.5 my-0.5">
+  {Array.from({ length: 5 }).map((_, i) => (
+    <Star
+      key={i}
+      size={12}
+      className={i < Math.round(p.rating || 0) ? "text-amber-400 fill-amber-400" : "text-gray-600"}
+    />
+  ))}
+  <span className="text-xs text-muted ml-1">({p.rating?.toFixed(1) || "0.0"})</span>
+</div>
+
+<p className="text-sm text-amber-300 font-medium">
+  {p.title || 'Profissional da construção'}
+</p>
+              
+              <div className="flex items-center gap-2 text-xs text-muted-light">
+                {p.city && <span className="flex items-center gap-1"><MapPin size={12} /> {p.city}</span>}
+                <span className="flex items-center gap-1 text-amber-400 font-medium">
+                  <Star size={12} fill="currentColor" /> {Number(p.rating || 0).toFixed(1)} ({p.reviews_count || 0})
+                </span>
+              </div>
+
+              {p.bio && (
+                <p className="text-[10px] text-muted leading-relaxed line-clamp-4 m-0">
+                  {p.bio}
+                </p>
+              )}
             </div>
 
-            {/* 📌 Paginação CORRIGIDA */}
+            <Button
+              variant="primary"
+              className="w-full bg-amber-400 hover:bg-amber-300 text-ink-950 font-semibold py-1.5 mt-1 rounded-md text-xs"
+              onClick={() => onNavigate(`/p/${p.id}`)}
+            >
+              Ver Perfil
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8">
                 <Button
@@ -459,20 +492,22 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
                 >
                   Anterior
                 </Button>
+
                 {Array.from({ length: totalPages }).map((_, idx) => (
                   <Button
-  key={idx}
-  onClick={() => setCurrentPage(idx + 1)}
-  className={cn(
-    "min-w-[36px] h-9 flex items-center justify-center border-none transition-colors",
-    currentPage === idx + 1 
-      ? "bg-amber-400 text-ink-950 font-medium" 
-      : "bg-transparent text-white hover:bg-ink-800"
-  )}
->
-  {idx + 1}
-</Button>
+                    key={idx}
+                    onClick={() => setCurrentPage(idx + 1)}
+                    className={cn(
+                      "min-w-[36px] h-9 flex items-center justify-center border-none transition-colors",
+                      currentPage === idx + 1 
+                        ? "bg-amber-400 text-ink-950 font-medium" 
+                        : "bg-transparent text-white hover:bg-ink-800"
+                    )}
+                  >
+                    {idx + 1}
+                  </Button>
                 ))}
+
                 <Button
                   variant="secondary"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
@@ -487,7 +522,6 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
         )}
       </div>
 
-      {/* Visualizador de histórias */}
       {storyViewerOpen && allStories[activeUserIndex] && (
         <div 
           className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center" 
