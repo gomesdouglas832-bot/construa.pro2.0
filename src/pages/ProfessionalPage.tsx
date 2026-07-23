@@ -163,7 +163,8 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
   return (
     <div className="min-h-screen bg-ink-950">
       {/* Cover */}
-      <div className="relative h-48 sm:h-64 overflow-hidden bg-ink-900">
+      {/* ALTERADO: altura aumentada (h-48/h-64 -> h-56/h-80) para a capa aparecer mais */}
+      <div className="relative h-56 sm:h-80 overflow-hidden bg-ink-900">
         {profile.cover_url ? (
           <img src={profile.cover_url} alt="" className="h-full w-full object-cover opacity-60" />
         ) : (
@@ -192,7 +193,8 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile header */}
-        <div className="relative -mt-20 sm:-mt-24 mb-8">
+        {/* ALTERADO: margem negativa reduzida (-mt-20/-mt-24 -> -mt-10/-mt-12) para o bloco sobrepor menos a capa */}
+        <div className="relative -mt-10 sm:-mt-12 mb-8">
           <div className="card-surface p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row items-start gap-5">
               <Avatar

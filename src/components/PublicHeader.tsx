@@ -50,8 +50,8 @@ export function PublicHeader({ onNavigate, onSearch, searchValue }: Props) {
               <HardHat size={20} strokeWidth={2.5} />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-base font-extrabold text-white tracking-tight">
-                CONSTRUA.<span className="text-amber-400">PRO</span>
+              <span className="text-base font-extrabold text-yellow-400 tracking-tight">
+                CONSTRUA.<span className="text-red-600">PRO</span>
               </span>
               <span className="text-[10px] text-muted uppercase tracking-widest hidden sm:block">
                 Marketplace da Obra

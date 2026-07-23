@@ -71,7 +71,13 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
       query = query.ilike('city', `%${city.trim()}%`);
     }
 
-    if (sort === 'rating') query = query.order('rating', { ascending: false });
+    // ALTERADO: "Melhor avaliados" agora prioriza QUEM TEM MAIS AVALIAÇÕES
+    // (reviews_count) e usa a nota (rating) apenas para desempate.
+    // Antes ordenava só por rating, o que colocava profissionais sem
+    // nenhuma avaliação (nota padrão 5.0) nas primeiras páginas.
+    if (sort === 'rating') {
+      query = query.order('reviews_count', { ascending: false }).order('rating', { ascending: false });
+    }
     if (sort === 'recent') query = query.order('created_at', { ascending: false });
     if (sort === 'experience') query = query.order('years_experience', { ascending: false });
 

@@ -55,8 +55,8 @@ export function AuthPage({ mode, onNavigate }: Props) {
             <div className="h-10 w-10 rounded-xl bg-amber-400 flex items-center justify-center text-ink-950 group-hover:shadow-amber-glow-sm transition-all">
               <HardHat size={22} strokeWidth={2.5} />
             </div>
-            <span className="text-xl font-extrabold text-white">
-              CONSTRUA.<span className="text-amber-400">PRO</span>
+            <span className="text-xl font-extrabold text-yellow-400">
+              CONSTRUA.<span className="text-red-600">PRO</span>
             </span>
           </button>
 

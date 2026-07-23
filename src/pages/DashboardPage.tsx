@@ -112,6 +112,14 @@ export function DashboardPage({ onNavigate }: Props) {
           </Button>
         }
       />
+      {/* 📌 AQUI VOCÊ COLOCA O AVISO LOGO ABAIXO DE STORIES */}
+  <div className="px-3 py-2 mt-4 border-t border-ink-800">
+    <div className="flex items-center gap-2 text-amber-400 text-xs font-medium">
+      <AlertCircle size={16} />
+      <span>Acesso gratuito — use todas as funcionalidades por tempo determinado</span>
+    </div>
+  </div>
+
 
       {/* Profile completion banner */}
       {completion < 100 && (
@@ -204,6 +212,14 @@ export function DashboardPage({ onNavigate }: Props) {
           ))}
         </div>
       </div>
+      {/* 📌 AQUI VOCÊ COLOCA O AVISO LOGO ABAIXO DE STORIES */}
+  <div className="px-3 py-2 mt-4 border-t border-ink-800">
+    <div className="flex items-center gap-2 text-amber-400 text-xs font-medium">
+      <AlertCircle size={16} />
+      <span>Acesso gratuito — use todas as funcionalidades por tempo determinado</span>
+    </div>
+  </div>
+
 
       <div className="grid lg:grid-cols-3 gap-4">
         {/* Profile summary */}
