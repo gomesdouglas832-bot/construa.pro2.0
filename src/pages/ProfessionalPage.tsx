@@ -157,7 +157,7 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
 
   const waUrl = buildWhatsappUrl(
     profile.whatsapp || '',
-    `Olá ${profile.full_name}! Encontrei seu perfil no ObraLink e gostaria de um orçamento.`,
+    `Olá ${profile.full_name}! Encontrei seu perfil no CONSTRUA.PRO e gostaria de fazer um orçamento com voce.`,
   );
 
   return (
