@@ -35,8 +35,8 @@ export function DashboardLayout({ active, onNavigate, children }: Props) {
           <HardHat size={20} strokeWidth={2.5} />
         </div>
         <div className="flex flex-col leading-none">
-          <span className="text-base font-extrabold text-white tracking-tight">
-            CONSTRUA.<span className="text-amber-400">PRO</span>
+          <span className="text-base font-extrabold text-yellow-400 tracking-tight">
+            CONSTRUA.<span className="text-red-600">PRO</span>
           </span>
           <span className="text-[10px] text-muted uppercase tracking-widest">Painel</span>
         </div>
@@ -100,7 +100,7 @@ export function DashboardLayout({ active, onNavigate, children }: Props) {
           <div className="h-8 w-8 rounded-lg bg-amber-400 flex items-center justify-center text-ink-950">
             <HardHat size={18} strokeWidth={2.5} />
           </div>
-          <span className="text-sm font-extrabold text-white">CONSTRUA.<span className="text-amber-400">PRO</span></span>
+          <span className="text-sm font-extrabold text-yellow-500">CONSTRUA.<span className="text-red-600">PRO</span></span>
         </button>
         <button onClick={() => setMobileOpen(true)} className="text-white p-2">
           <Menu size={20} />
