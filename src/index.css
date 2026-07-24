@@ -12,6 +12,11 @@
 
   html {
     scroll-behavior: smooth;
+    background-color: #0A0A0A;
+    /* Trava o efeito "elastico" (bounce) no iOS/Android, que revela
+       o fundo por tras do body e da a sensacao de tela "nao fixa" */
+    overscroll-behavior-y: none;
+    height: 100%;
   }
 
   body {
@@ -19,6 +24,11 @@
     color: #f5f5f5;
     font-family: 'Inter', system-ui, sans-serif;
     overflow-x: hidden;
+    overscroll-behavior-y: none;
+    min-height: 100%;
+    /* min-height dinamico: acompanha a altura real da viewport no
+       mobile, mesmo quando a barra de endereco aparece/some */
+    min-height: 100dvh;
   }
 
   ::selection {
