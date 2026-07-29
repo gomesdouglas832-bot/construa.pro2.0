@@ -44,6 +44,14 @@ export function PublicFooter({ onNavigate }: { onNavigate: (p: string) => void }
         </div>
         <div className="mt-10 pt-6 border-t border-ink-800 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted">© 2026 CONSTRUA.PRO. Construído para quem constrói.</p>
+          <div className="flex items-center gap-4">
+            <button onClick={() => onNavigate('/privacidade')} className="text-xs text-muted hover:text-amber-400 transition-colors">
+              Política de Privacidade
+            </button>
+            <button onClick={() => onNavigate('/termos')} className="text-xs text-muted hover:text-amber-400 transition-colors">
+              Termos de Uso
+            </button>
+          </div>
           <p className="text-xs text-muted">Feito pra voce !</p>
         </div>
       </div>

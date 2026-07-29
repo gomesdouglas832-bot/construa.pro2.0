@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HardHat, Mail, Lock, User, ArrowLeft, ArrowRight, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
+import { HardHat, Mail, Lock, User, Phone, ArrowLeft, ArrowRight, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -16,6 +16,7 @@ export function AuthPage({ mode, onNavigate }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isSignup = mode === 'signup';
@@ -27,13 +28,17 @@ export function AuthPage({ mode, onNavigate }: Props) {
       setError('Digite seu nome completo.');
       return;
     }
+    if (isSignup && phone.replace(/\D/g, '').length < 10) {
+      setError('Digite um telefone válido (com DDD).');
+      return;
+    }
     if (password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
     setLoading(true);
     const res = isSignup
-      ? await signUp(email.trim(), password, fullName.trim())
+      ? await signUp(email.trim(), password, fullName.trim(), phone)
       : await signIn(email.trim(), password);
     setLoading(false);
     if (res.error) {
@@ -124,6 +129,18 @@ export function AuthPage({ mode, onNavigate }: Props) {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Ex: Marcos Silva"
                 icon={<User size={15} />}
+                required
+              />
+            )}
+            {isSignup && (
+              <Input
+                label="Telefone / WhatsApp"
+                name="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(00) 00000-0000"
+                icon={<Phone size={15} />}
                 required
               />
             )}

@@ -1,14 +1,16 @@
 import { type ReactNode, useState } from 'react';
 import {
   LayoutDashboard, User, Image as ImageIcon, Clock, LogOut, ExternalLink, HardHat, Menu, X, Sparkles,
+  Megaphone, ShieldOff,
 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { Avatar } from './ui/Avatar';
 import { Badge } from './ui/Badge';
 import { cn } from '../lib/utils';
+import { AdBannerStrip } from './AdBannerStrip';
 
 type Props = {
-  active: 'dashboard' | 'profile' | 'portfolio' | 'stories';
+  active: 'dashboard' | 'profile' | 'portfolio' | 'stories' | 'admin-ads' | 'admin-banned';
   onNavigate: (path: string) => void;
   children: ReactNode;
 };
@@ -20,9 +22,15 @@ const NAV = [
   { key: 'stories', label: 'Stories', icon: Clock, path: '/dashboard/stories' },
 ] as const;
 
+const ADMIN_NAV = [
+  { key: 'admin-ads', label: 'Anúncios', icon: Megaphone, path: '/admin/ads' },
+  { key: 'admin-banned', label: 'Banidos', icon: ShieldOff, path: '/admin/banned' },
+] as const;
+
 export function DashboardLayout({ active, onNavigate, children }: Props) {
   const { user, profile, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isAdmin = profile?.is_admin === true;
 
   function handleSignOut() {
     signOut().then(() => onNavigate('/'));
@@ -61,7 +69,33 @@ export function DashboardLayout({ active, onNavigate, children }: Props) {
             </button>
           );
         })}
+
+        {isAdmin && (
+          <>
+            <p className="label-tag px-3 pt-5 pb-1.5">Administração</p>
+            {ADMIN_NAV.map((item) => {
+              const isActive = active === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => { onNavigate(item.path); setMobileOpen(false); }}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-all',
+                    isActive
+                      ? 'bg-amber-400/10 text-amber-400 border border-amber-400/30'
+                      : 'text-muted-light hover:text-white hover:bg-ink-800 border border-transparent',
+                  )}
+                >
+                  <item.icon size={17} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </>
+        )}
       </nav>
+
+      <AdBannerStrip placement="dashboard" aspectClassName="aspect-[3/4]" />
 
       <div className="space-y-3">
         {profile && (

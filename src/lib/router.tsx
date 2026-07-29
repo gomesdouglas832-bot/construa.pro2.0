@@ -8,10 +8,14 @@ export type Route =
   | { name: 'signup' }
   | { name: 'forgot-password' }
   | { name: 'reset-password' }
+  | { name: 'privacy-policy' }
+  | { name: 'terms-of-service' }
   | { name: 'dashboard' }
   | { name: 'dashboard-profile' }
   | { name: 'dashboard-portfolio' }
-  | { name: 'dashboard-stories' };
+  | { name: 'dashboard-stories' }
+  | { name: 'admin-ads' }
+  | { name: 'admin-banned' };
 
 function parseHash(): Route {
   const hash = window.location.hash;
@@ -41,12 +45,24 @@ function parseHash(): Route {
   if (segments[0] === 'forgot-password') return { name: 'forgot-password' };
   if (segments[0] === 'reset-password') return { name: 'reset-password' };
 
+  // Política de Privacidade (LGPD)
+  if (segments[0] === 'privacidade') return { name: 'privacy-policy' };
+
+  // Termos de Uso e Responsabilidade
+  if (segments[0] === 'termos') return { name: 'terms-of-service' };
+
   // Rotas da Dashboard
   if (segments[0] === 'dashboard') {
     if (segments[1] === 'profile') return { name: 'dashboard-profile' };
     if (segments[1] === 'portfolio') return { name: 'dashboard-portfolio' };
     if (segments[1] === 'stories') return { name: 'dashboard-stories' };
     return { name: 'dashboard' };
+  }
+
+  // Rotas do Admin
+  if (segments[0] === 'admin') {
+    if (segments[1] === 'ads') return { name: 'admin-ads' };
+    if (segments[1] === 'banned') return { name: 'admin-banned' };
   }
   
   return { name: 'home' };

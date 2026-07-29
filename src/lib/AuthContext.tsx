@@ -8,7 +8,7 @@ type AuthState = {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName: string, phone: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -91,13 +91,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? translateError(error.message) : null };
   }
 
-  // Cadastro ✅ CORRIGIDO: Não cria perfil aqui, deixa o gatilho do banco fazer
-  async function signUp(email: string, password: string, fullName: string) {
+  // Cadastro ✅ Verifica banimento (nome/telefone/email) ANTES de criar a conta
+  async function signUp(email: string, password: string, fullName: string, phone: string) {
+    // Checagem de banimento: chama uma funcao segura no banco que so
+    // retorna true/false, sem expor a lista de banidos pro frontend.
+    const { data: banido, error: banidoError } = await supabase.rpc('check_is_banned', {
+      p_email: email.trim(),
+      p_phone: phone.replace(/\D/g, ''),
+      p_full_name: fullName.trim(),
+    });
+
+    if (banidoError) {
+      console.error('❌ Erro ao checar banimento:', banidoError.message);
+      // Se a checagem falhar por algum motivo tecnico, nao bloqueia o
+      // cadastro por causa disso - so loga o erro e segue o fluxo normal.
+    } else if (banido) {
+      return { error: 'Você foi banido da plataforma e não pode se cadastrar novamente.' };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName } // Envia o nome para o gatilho usar
+        data: { full_name: fullName, phone: phone.replace(/\D/g, '') } // Envia o nome e telefone para o gatilho usar
       }
     });
 

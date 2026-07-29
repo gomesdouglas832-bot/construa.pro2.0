@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn } from '../lib/utils';
+import { AdBannerStrip } from '../components/AdBannerStrip';
 
 const ICONS: Record<string, typeof HardHat> = {
   BrickWall: HardHat, Compass, Ruler, Zap, Wrench, PaintRoller, Hammer, Grid3x3, Layers, HardHat,
@@ -393,6 +394,8 @@ export function BrowsePage({ onNavigate, initialCategory, initialQuery }: Props)
             );
           })}
         </div>
+
+        <AdBannerStrip placement={`explore_page_${Math.min(currentPage, 3)}`} />
 
      {/* ✅ LISTA DE PROFISSIONAIS - LAYOUT AJUSTADO */}
 {loading ? (

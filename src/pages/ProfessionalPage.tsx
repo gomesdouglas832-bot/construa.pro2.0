@@ -44,6 +44,7 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -99,6 +100,7 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
     if (!reviewerName.trim()) return toast('Digite seu nome completo', 'error');
     if (phoneClean.length < 10) return toast('Digite um telefone válido', 'error');
     if (selectedStars < 1 || selectedStars > 5) return toast('Escolha uma nota de 1 a 5', 'error');
+    if (!acceptedTerms) return toast('Você precisa aceitar os Termos de Uso para avaliar', 'error');
 
     setSubmitting(true);
 
@@ -157,7 +159,7 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
 
   const waUrl = buildWhatsappUrl(
     profile.whatsapp || '',
-    `Olá ${profile.full_name}! Encontrei seu perfil no CONSTRUA.PRO e gostaria de fazer um orçamento com voce.`,
+    `Olá ${profile.full_name}! Encontrei seu perfil no Construa.pro e gostaria de um orçamento.`,
   );
 
   return (
@@ -426,10 +428,31 @@ export function ProfessionalPage({ id, onNavigate }: Props) {
                   placeholder="Conte como foi o atendimento e o serviço prestado..."
                 />
 
+                <label className="flex items-start gap-2.5 mt-4 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-ink-600 bg-ink-900 text-amber-400 focus:ring-amber-400/40 focus:ring-offset-0 shrink-0"
+                  />
+                  <span className="text-xs text-muted-lighter">
+                    Declaro que esta avaliação é verdadeira e li os{' '}
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('/termos')}
+                      className="text-amber-400 hover:text-amber-300 underline underline-offset-2"
+                    >
+                      Termos de Uso
+                    </button>
+                    .
+                  </span>
+                </label>
+
                 <Button
                   type="submit"
                   icon={<Send size={15} />}
                   loading={submitting}
+                  disabled={!acceptedTerms}
                   className="mt-4"
                 >
                   Enviar avaliação

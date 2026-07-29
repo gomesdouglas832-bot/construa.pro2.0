@@ -16,10 +16,15 @@ import { DashboardPortfolioPage } from './pages/DashboardPortfolioPage';
 import { DashboardStoriesPage } from './pages/DashboardStoriesPage';
 import { ForgotPassword } from './components/auth/ForgotPassword';
 import { UpdatePassword } from './components/auth/UpdatePassword';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { TermsOfServicePage } from './pages/TermsOfServicePage';
+import { PrivacyConsentModal } from './components/PrivacyConsentModal';
+import { AdminAdsPage } from './pages/AdminAdspage';
+import { AdminBannedPage } from './pages/AdminBannedPage';
 
 function Routes() {
   const { route, navigate } = useRouter();
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   // Redirect auth-aware routes
   useEffect(() => {
@@ -30,17 +35,29 @@ function Routes() {
     if (route.name === 'reset-password') return;
 
     const dashRoutes = ['dashboard', 'dashboard-profile', 'dashboard-portfolio', 'dashboard-stories'];
-    
+    const adminRoutes = ['admin-ads', 'admin-banned'];
+
     // Redirecionar para signin se tentar acessar dashboard sem estar logado
     if (dashRoutes.includes(route.name) && !user) {
       navigate('/signin');
+    }
+
+    // Rotas admin: precisa estar logado E ter is_admin = true.
+    // Se nao for admin, manda pra home discretamente (nao revela
+    // que a rota existe nem por que foi bloqueado).
+    if (adminRoutes.includes(route.name)) {
+      if (!user) {
+        navigate('/signin');
+      } else if (profile && !profile.is_admin) {
+        navigate('/');
+      }
     }
     
     // Redirecionar para dashboard se já estiver logado e tentar acessar login/signup
     if ((route.name === 'signin' || route.name === 'signup') && user) {
       navigate('/dashboard');
     }
-  }, [route, user, loading, navigate]);
+  }, [route, user, profile, loading, navigate]);
 
   if (loading) {
     return <FullPageSpinner />;
@@ -80,7 +97,27 @@ function Routes() {
       return <ForgotPassword onNavigate={navigate} />;
     case 'reset-password':
       return <UpdatePassword onNavigate={navigate} />;
-      
+
+    // Política de Privacidade (LGPD)
+    case 'privacy-policy':
+      return (
+        <>
+          <PublicHeader onNavigate={navigate} />
+          <PrivacyPolicyPage onNavigate={navigate} />
+          <PublicFooter onNavigate={navigate} />
+        </>
+      );
+
+    // Termos de Uso e Responsabilidade
+    case 'terms-of-service':
+      return (
+        <>
+          <PublicHeader onNavigate={navigate} />
+          <TermsOfServicePage onNavigate={navigate} />
+          <PublicFooter onNavigate={navigate} />
+        </>
+      );
+
     case 'dashboard':
       return <DashboardPage onNavigate={navigate} />;
     case 'dashboard-profile':
@@ -89,6 +126,13 @@ function Routes() {
       return <DashboardPortfolioPage onNavigate={navigate} />;
     case 'dashboard-stories':
       return <DashboardStoriesPage onNavigate={navigate} />;
+
+    // Painel Admin
+    case 'admin-ads':
+      return <AdminAdsPage onNavigate={navigate} />;
+    case 'admin-banned':
+      return <AdminBannedPage onNavigate={navigate} />;
+
     default:
       return (
         <>
@@ -104,9 +148,21 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <Routes />
+        {/* Modal de consentimento LGPD: fica sempre montado, aparece
+            por cima de qualquer rota na primeira visita do usuario */}
+        <AppWithConsent />
       </ToastProvider>
     </AuthProvider>
+  );
+}
+
+function AppWithConsent() {
+  const { navigate } = useRouter();
+  return (
+    <>
+      <PrivacyConsentModal onNavigate={navigate} />
+      <Routes />
+    </>
   );
 }
 

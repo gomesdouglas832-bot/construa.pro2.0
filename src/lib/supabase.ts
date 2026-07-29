@@ -35,6 +35,7 @@ export type Profile = {
   created_at: string;
   updated_at: string;
   instagram: string | null;
+  is_admin: boolean; // ✅ Adicionado para o painel administrativo
 };
 
 export type PortfolioItem = {
@@ -112,4 +113,32 @@ export type Rating = {
   stars: number;
   comment: string;
   created_at: string;
+};
+
+// ✅ NOVO: Tipo para os anúncios do painel administrativo
+export type Advertisement = {
+  id: string;
+  title: string;
+  image_url: string;
+  link_url: string;
+  placement: string;
+  position: number;
+  active: boolean;
+  starts_at: string;
+  expires_at: string | null; // null = indeterminado
+  client_name: string;
+  amount_paid: number;
+  payment_notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ✅ NOVO: Tipo para a lista de banidos do painel administrativo
+export type BannedUser = {
+  id: string;
+  phone: string | null;
+  email: string | null;
+  full_name: string | null;
+  reason: string;
+  banned_at: string;
 };
