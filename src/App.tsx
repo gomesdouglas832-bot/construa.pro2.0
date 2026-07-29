@@ -21,7 +21,7 @@ import { TermsOfServicePage } from './pages/TermsOfServicePage';
 import { PrivacyConsentModal } from './components/PrivacyConsentModal';
 import { AdminAdsPage } from './pages/AdminAdsPage';
 import { AdminBannedPage } from './pages/AdminBannedPage';
-
+//
 function Routes() {
   const { route, navigate } = useRouter();
   const { user, profile, loading } = useAuth();
