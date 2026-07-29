@@ -19,7 +19,7 @@ import { UpdatePassword } from './components/auth/UpdatePassword';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { TermsOfServicePage } from './pages/TermsOfServicePage';
 import { PrivacyConsentModal } from './components/PrivacyConsentModal';
-import { AdminAdsPage } from './pages/AdminAdspage';
+import { AdminAdsPage } from './pages/AdminAdsPage';
 import { AdminBannedPage } from './pages/AdminBannedPage';
 
 function Routes() {
